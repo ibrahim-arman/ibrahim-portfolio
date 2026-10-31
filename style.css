@@ -1209,3 +1209,37 @@ input, textarea {
         padding: 1.5rem;
     }
 }
+
+
+/* --------------------------------------------------------------------------
+   DYNAMIC PROJECTS (loaded from Firebase)
+   -------------------------------------------------------------------------- */
+.projects-empty {
+    grid-column: 1 / -1;
+    color: var(--text-muted);
+}
+
+.project-image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: var(--radius-md, 12px);
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--border-color);
+}
+
+.project-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+}
+
+a.project-link {
+    color: var(--text-primary);
+    transition: color 0.2s ease;
+}
+
+a.project-link:hover {
+    color: var(--gradient-teal);
+}

@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initScrollSpy();
     initScrollFadeIn();
     initEmailCopy();
-    initContactForm();
     initBackToTop();
 });
 
@@ -181,44 +180,6 @@ function showToast(message) {
             toast.parentNode.removeChild(toast);
         }
     }, 3000);
-}
-
-/**
- * 6. CONTACT FORM HANDLING
- */
-function initContactForm() {
-    const form = document.getElementById('contact-form');
-    if (!form) return;
-
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-
-        const name = document.getElementById('user-name').value.trim();
-        const email = document.getElementById('user-email').value.trim();
-        const subject = document.getElementById('user-subject').value.trim();
-        const message = document.getElementById('user-message').value.trim();
-
-        if (!name || !email || !message) {
-            showToast('Please fill in your name, email, and message.');
-            return;
-        }
-
-        const submitBtn = document.getElementById('form-submit-btn');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span>Preparing...</span> <i class="fas fa-spinner fa-spin"></i>';
-
-        setTimeout(() => {
-            const mailtoSubject = encodeURIComponent(subject || `Message from ${name}`);
-            const mailtoBody = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`);
-            window.location.href = `mailto:iarman529@gmail.com?subject=${mailtoSubject}&body=${mailtoBody}`;
-
-            showToast('Thank you! Opening your email client...');
-            form.reset();
-
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<span>Send Message</span> <i class="fas fa-paper-plane"></i>';
-        }, 800);
-    });
 }
 
 /**

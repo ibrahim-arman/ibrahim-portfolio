@@ -1,0 +1,33 @@
+{
+  "rules": {
+    "projects": {
+      ".read": true,
+      ".write": "auth != null && auth.uid === 'lnUTXTs3rYdXH2iWZAjyMDuohhH3'"
+    },
+    "messages": {
+      ".read": "auth != null && auth.uid === 'lnUTXTs3rYdXH2iWZAjyMDuohhH3'",
+      "$id": {
+        ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.uid === 'lnUTXTs3rYdXH2iWZAjyMDuohhH3')",
+        ".validate": "newData.hasChildren(['name','email','subject','message','createdAt'])",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200"
+        },
+        "subject": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200"
+        },
+        "message": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 2000"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}
