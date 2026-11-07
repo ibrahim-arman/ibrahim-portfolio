@@ -4,29 +4,35 @@
       ".read": true,
       ".write": "auth != null && auth.uid === 'lnUTXTs3rYdXH2iWZAjyMDuohhH3'"
     },
+    "posts": {
+      ".indexOn": ["published"],
+      ".read": "(auth != null && auth.uid === 'lnUTXTs3rYdXH2iWZAjyMDuohhH3') || (query.orderByChild === 'published' && query.equalTo === true)",
+      ".write": "auth != null && auth.uid === 'lnUTXTs3rYdXH2iWZAjyMDuohhH3'",
+      "$id": {
+        ".read": "data.child('published').val() === true",
+        ".validate": "newData.hasChildren(['title','content','published','createdAt'])",
+        "title": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 150" },
+        "excerpt": { ".validate": "newData.isString() && newData.val().length <= 300" },
+        "content": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 50000" },
+        "cover": { ".validate": "newData.isString() && newData.val().length <= 500" },
+        "published": { ".validate": "newData.isBoolean()" },
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "updatedAt": { ".validate": "newData.isNumber()" },
+        "tags": { ".validate": "newData.hasChildren() || newData.val() === null" },
+        "$other": { ".validate": false }
+      }
+    },
     "messages": {
       ".read": "auth != null && auth.uid === 'lnUTXTs3rYdXH2iWZAjyMDuohhH3'",
       "$id": {
         ".write": "(!data.exists() && newData.exists()) || (auth != null && auth.uid === 'lnUTXTs3rYdXH2iWZAjyMDuohhH3')",
         ".validate": "newData.hasChildren(['name','email','subject','message','createdAt'])",
-        "name": {
-          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
-        },
-        "email": {
-          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200"
-        },
-        "subject": {
-          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200"
-        },
-        "message": {
-          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 2000"
-        },
-        "createdAt": {
-          ".validate": "newData.isNumber()"
-        },
-        "$other": {
-          ".validate": false
-        }
+        "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100" },
+        "email": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+        "subject": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+        "message": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 2000" },
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "$other": { ".validate": false }
       }
     }
   }

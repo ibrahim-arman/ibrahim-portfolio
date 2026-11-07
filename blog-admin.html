@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Blog admin</title>
+<link rel="stylesheet" href="blog.css">
+</head>
+<body>
+<header class="bar"><div class="wrap"><a href="blog.html">&larr; View blog</a><button id="logout" class="btn ghost" hidden>Sign out</button></div></header>
+<main class="wrap">
+  <h1 class="title" style="font-size:2rem">Blog admin</h1>
+
+  <section id="login-box" class="panel" style="max-width:420px">
+    <label for="email">Email</label><input id="email" type="email" autocomplete="username">
+    <label for="password">Password</label><input id="password" type="password" autocomplete="current-password">
+    <p><button id="login" class="btn">Sign in</button></p>
+    <p class="status" id="login-status"></p>
+  </section>
+
+  <div id="app" hidden>
+    <section class="panel">
+      <h2 id="form-title" style="margin-top:0">New post</h2>
+      <label for="title">Title</label><input id="title" maxlength="150">
+      <label for="excerpt">Short summary (shown on the card)</label><input id="excerpt" maxlength="300">
+      <div class="split">
+        <div><label for="tags">Tags (comma separated)</label><input id="tags" placeholder="firebase, web"></div>
+        <div><label for="cover">Cover image</label><input id="cover" type="file" accept="image/*"></div>
+      </div>
+      <label for="content">Content (Markdown)</label>
+      <div class="toolbar" role="toolbar" aria-label="Formatting">
+        <button class="btn ghost" data-ins="**|**">Bold</button>
+        <button class="btn ghost" data-ins="*|*">Italic</button>
+        <button class="btn ghost" data-ins="## |">Heading</button>
+        <button class="btn ghost" data-ins="[|](https://)">Link</button>
+        <button class="btn ghost" data-ins="`|`">Code</button>
+        <button class="btn ghost" data-ins="\n> |\n">Quote</button>
+        <button class="btn ghost" data-ins="\n\nhttps://www.youtube.com/watch?v=|\n\n">YouTube</button>
+        <button class="btn ghost" id="img-btn">Image</button>
+        <input id="img-file" type="file" accept="image/*" hidden>
+      </div>
+      <div class="split">
+        <textarea id="content" aria-label="Post content"></textarea>
+        <div id="preview" class="preview body" aria-label="Live preview"></div>
+      </div>
+      <label><input id="published" type="checkbox" style="width:auto"> Published (visible to everyone)</label>
+      <p><button id="save" class="btn">Save post</button> <button id="reset" class="btn ghost">New post</button></p>
+      <p class="status" id="status"></p>
+    </section>
+    <section class="panel"><h2 style="margin-top:0">All posts</h2><div id="list"></div></section>
+  </div>
+</main>
+
+<script type="module">
+import { db, auth } from "./firebase.js";
+import { uploadImage } from "./cloudinary.js";
+import { render, el, $, fmt } from "./blog-lib.js";
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { ref, push, get, set, remove, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+let editing = null, cover = "", createdAt = null;
+const say = (m) => ($("status").textContent = m);
+
+$("login").onclick = async () => {
+  $("login-status").textContent = "Signing in...";
+  try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("password").value); $("login-status").textContent = ""; }
+  catch { $("login-status").textContent = "Wrong email or password."; }
+};
+$("logout").onclick = () => signOut(auth);
+onAuthStateChanged(auth, (u) => {
+  $("login-box").hidden = !!u; $("app").hidden = !u; $("logout").hidden = !u;
+  if (u) loadList();
+});
+
+/* Editor helpers */
+const ta = $("content");
+const preview = () => ($("preview").innerHTML = render(ta.value)); // sanitized output
+ta.addEventListener("input", preview);
+function insert(tpl) {
+  const [a, b = ""] = tpl.replace(/\\n/g, "\n").split("|");
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  ta.setRangeText(a + ta.value.slice(s, e) + b, s, e, "end");
+  ta.focus(); preview();
+}
+document.querySelectorAll("[data-ins]").forEach((b) => (b.onclick = () => insert(b.dataset.ins)));
+$("img-btn").onclick = () => $("img-file").click();
+$("img-file").onchange = async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  say("Uploading image...");
+  try { insert(`\n\n![${f.name.replace(/\.\w+$/, "")}](${await uploadImage(f)})\n\n`); say("Image added."); }
+  catch (err) { say("Upload failed: " + err.message); }
+  e.target.value = "";
+};
+
+function resetForm() {
+  editing = null; cover = ""; createdAt = null;
+  ["title", "excerpt", "tags", "content"].forEach((i) => ($(i).value = ""));
+  $("cover").value = ""; $("published").checked = false;
+  $("form-title").textContent = "New post"; preview();
+}
+$("reset").onclick = () => { resetForm(); say(""); };
+
+$("save").onclick = async () => {
+  const title = $("title").value.trim(), content = ta.value.trim();
+  if (!title || !content) return say("Title and content are required.");
+  $("save").disabled = true;
+  try {
+    const f = $("cover").files[0];
+    if (f) { say("Uploading cover..."); cover = await uploadImage(f); }
+    const data = {
+      title, content, cover, published: $("published").checked,
+      excerpt: $("excerpt").value.trim(),
+      tags: $("tags").value.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean),
+      createdAt: createdAt || serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    const r = editing ? ref(db, "posts/" + editing) : push(ref(db, "posts"));
+    await set(r, data);
+    say($("published").checked ? "Published." : "Saved as draft.");
+    resetForm(); loadList();
+  } catch (err) { console.error(err); say("Could not save: " + err.message); }
+  finally { $("save").disabled = false; }
+};
+
+async function loadList() {
+  const box = $("list"); box.replaceChildren();
+  const snap = await get(ref(db, "posts"));
+  if (!snap.exists()) return box.append(el("p", "empty", "No posts yet. Write your first one above."));
+  Object.entries(snap.val()).sort(([, a], [, b]) => (b.createdAt || 0) - (a.createdAt || 0)).forEach(([id, p]) => {
+    const row = el("div", "row"), info = el("div"), acts = el("div", "acts");
+    info.append(el("strong", "", p.title), el("div", "meta", `${p.published ? "Published" : "Draft"} \u2022 ${fmt(p.createdAt)}`));
+    const edit = el("button", "btn ghost", "Edit");
+    edit.onclick = () => {
+      editing = id; cover = p.cover || ""; createdAt = p.createdAt;
+      $("title").value = p.title; $("excerpt").value = p.excerpt || ""; $("tags").value = (p.tags || []).join(", ");
+      ta.value = p.content; $("published").checked = !!p.published;
+      $("form-title").textContent = "Edit post"; preview(); window.scrollTo(0, 0);
+    };
+    const del = el("button", "btn danger", "Delete");
+    del.onclick = async () => { if (confirm(`Delete "${p.title}"?`)) { await remove(ref(db, "posts/" + id)); loadList(); } };
+    acts.append(edit, del); row.append(info, acts); box.append(row);
+  });
+}
+</script>
+</body>
+</html>

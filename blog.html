@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blog</title>
+<meta name="description" content="Notes on computer science, projects and what I am learning.">
+<link rel="stylesheet" href="blog.css">
+</head>
+<body>
+<header class="bar"><div class="wrap"><a href="index.html">&larr; Portfolio</a><a href="#" id="home">Blog</a></div></header>
+
+<main id="list-view" class="wrap">
+  <h1 class="title">Blog</h1>
+  <p class="lead">Notes on what I am building and learning.</p>
+  <div class="tools">
+    <input id="search" type="search" placeholder="Search posts" aria-label="Search posts">
+    <div id="tags" class="tags"></div>
+  </div>
+  <div id="grid" class="grid" aria-live="polite"><p class="empty">Loading posts...</p></div>
+</main>
+
+<article id="post-view" class="post" hidden></article>
+
+<script type="module">
+import { db } from "./firebase.js";
+import { ref, get, query, orderByChild, equalTo }
+  from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+import { render, readTime, fmt, el, $, safeUrl } from "./blog-lib.js";
+
+let posts = [], tag = "", term = "";
+
+async function load() {
+  try {
+    const snap = await get(query(ref(db, "posts"), orderByChild("published"), equalTo(true)));
+    posts = Object.entries(snap.val() || {}).map(([id, p]) => ({ id, ...p }))
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  } catch (e) {
+    console.error(e);
+    $("grid").replaceChildren(el("p", "empty", "Could not load posts. Check your connection and reload."));
+    return;
+  }
+  route();
+}
+
+function drawList() {
+  const allTags = [...new Set(posts.flatMap((p) => p.tags || []))];
+  const box = $("tags");
+  box.replaceChildren();
+  allTags.forEach((t) => {
+    const b = el("button", "chip", "#" + t);
+    b.setAttribute("aria-pressed", String(t === tag));
+    b.onclick = () => { tag = tag === t ? "" : t; drawList(); };
+    box.append(b);
+  });
+
+  const shown = posts.filter((p) =>
+    (!tag || (p.tags || []).includes(tag)) &&
+    (!term || (p.title + " " + (p.excerpt || "") + " " + p.content).toLowerCase().includes(term)));
+  const grid = $("grid");
+  grid.replaceChildren();
+  if (!shown.length) {
+    grid.append(el("p", "empty", posts.length ? "No posts match your search." : "No posts yet. Check back soon."));
+    return;
+  }
+  shown.forEach((p) => {
+    const a = el("a", "card");
+    a.href = "#" + p.id;
+    if (safeUrl(p.cover)) { const i = el("img"); i.src = p.cover; i.alt = ""; i.loading = "lazy"; a.append(i); }
+    const d = el("div");
+    d.append(el("h2", "", p.title),
+      el("p", "meta", `${fmt(p.createdAt)} \u2022 ${readTime(p.content)}`),
+      el("p", "", p.excerpt || p.content.replace(/[#*`>\[\]()!_-]/g, "").slice(0, 140) + "..."));
+    a.append(d);
+    grid.append(a);
+  });
+}
+
+function drawPost(p) {
+  const v = $("post-view");
+  v.replaceChildren();
+  document.title = p.title + " | Blog";
+  const tags = el("div", "tags");
+  (p.tags || []).forEach((t) => tags.append(el("span", "", "#" + t)));
+  v.append(el("p", "meta", `${fmt(p.createdAt)} \u2022 ${readTime(p.content)}`), el("h1", "", p.title), tags);
+  if (safeUrl(p.cover)) { const i = el("img", "cover"); i.src = p.cover; i.alt = ""; v.append(i); }
+  const body = el("div", "body");
+  body.innerHTML = render(p.content); // sanitized with DOMPurify in blog-lib.js
+  v.append(body);
+  const share = el("button", "btn ghost", "Copy link");
+  share.style.marginTop = "32px";
+  share.onclick = () => navigator.clipboard.writeText(location.href).then(() => (share.textContent = "Link copied"));
+  v.append(share);
+}
+
+async function route() {
+  const id = location.hash.slice(1);
+  const showPost = !!id;
+  $("list-view").hidden = showPost;
+  $("post-view").hidden = !showPost;
+  if (!showPost) { document.title = "Blog"; drawList(); return; }
+  let p = posts.find((x) => x.id === id);
+  if (!p) {
+    try { const s = await get(ref(db, "posts/" + id)); if (s.exists()) p = { id, ...s.val() }; } catch {}
+  }
+  if (!p) { $("post-view").replaceChildren(el("p", "empty", "This post does not exist or is not published.")); return; }
+  drawPost(p);
+  window.scrollTo(0, 0);
+}
+
+$("search").addEventListener("input", (e) => { term = e.target.value.trim().toLowerCase(); drawList(); });
+window.addEventListener("hashchange", route);
+load();
+</script>
+</body>
+</html>
