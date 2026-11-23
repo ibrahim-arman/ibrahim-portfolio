@@ -13,8 +13,8 @@
     "profiles": [
       {
         "network": "GitHub",
-        "username": "Trueib2",
-        "url": "https://github.com/Trueib2",
+        "username": "ibrahim-arman",
+        "url": "https://github.com/ibrahim-arman",
         "icon": "fa-brands fa-github"
       },
       {
@@ -43,7 +43,7 @@
       "items": [
         
         "Python",
-        "JavaScript",
+        "JavaScript"
       ]
     }
   ],
@@ -60,7 +60,7 @@
       "area": "Pre-Eng",
       "startDate": "2023",
       "endDate": "2025"
-    },
+    }
   ],
   "languages": [
     {
