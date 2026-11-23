@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project | Muhammad Ibrahim</title>
+    <meta name="description" content="Project details by Muhammad Ibrahim.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Absolute paths: this page is served from /projects/<name> -->
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header class="header">
+        <nav class="nav-container">
+            <a href="/" class="logo" aria-label="Muhammad Ibrahim Home">
+                <span class="logo-accent">MI</span>
+                <span class="logo-name">Muhammad Ibrahim</span>
+            </a>
+            <ul class="nav-menu" id="nav-menu">
+                <li><a href="/#home" class="nav-link">Home</a></li>
+                <li><a href="/#about" class="nav-link">About</a></li>
+                <li><a href="/#skills" class="nav-link">Skills</a></li>
+                <li><a href="/#projects" class="nav-link active">Projects</a></li>
+                <li><a href="/#codeforces" class="nav-link">Codeforces</a></li>
+                <li><a href="/blog.html" class="nav-link">Blog</a></li>
+                <li><a href="/#contact" class="nav-link">Contact</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light and dark theme" title="Toggle theme">
+                    <i class="fas fa-moon theme-icon-dark"></i>
+                    <i class="fas fa-sun theme-icon-light"></i>
+                </button>
+                <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle navigation menu">
+                    <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="pd-main">
+        <div class="container" id="pd-root">
+            <p class="pd-empty">Loading project...</p>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
+    <script src="/script.js"></script>
+
+    <script type="module">
+    import { db } from "/firebase.js";
+    import { ref, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { optimize } from "/cloudinary.js";
+    import { render, el } from "/blog-lib.js";
+    // allow https links and local files such as /media/shot.webp
+    const safeUrl = (u) => (/^https:\/\//.test(u || "") || /^\/(?!\/)/.test(u || "") ? u : "");
+    import { STATIC_PROJECTS, slugOf } from "/projects-data.js";
+
+    const root = document.getElementById("pd-root");
+    // /projects/<name>  (or project.html?p=<name> when testing locally)
+    const slug = new URLSearchParams(location.search).get("p")
+      || location.pathname.split("/").filter(Boolean).pop();
+
+    function notFound() {
+      root.replaceChildren(el("p", "pd-empty", "Project not found."));
+      const a = el("a", "btn btn-outline", "Back to projects"); a.href = "/#projects";
+      root.append(a);
+    }
+
+    function block(title, node) {
+      const s = el("section", "pd-block");
+      s.append(el("h2", "", title), node);
+      return s;
+    }
+
+    function draw(p) {
+      document.title = `${p.title} | Muhammad Ibrahim`;
+      const tech = Array.isArray(p.tech) ? p.tech : [];
+      root.replaceChildren();
+
+      const back = el("a", "pd-back"); back.href = "/#projects";
+      back.append(el("i", "fas fa-arrow-left"), el("span", "", "All projects"));
+      root.append(back, el("span", "section-tag", tech[0] || "Project"), el("h1", "pd-title", p.title));
+
+      if (tech.length) {
+        const stack = el("div", "project-tech-stack");
+        tech.forEach((t) => stack.append(el("span", "tech-pill", t)));
+        root.append(stack);
+      }
+
+      const acts = el("div", "pd-actions");
+      const btn = (href, label, icon, cls) => {
+        const a = el("a", "btn " + cls); a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+        a.append(el("span", "", label), el("i", icon)); return a;
+      };
+      if (/^https?:\/\//.test(p.live || "")) acts.append(btn(p.live, "Live demo", "fas fa-arrow-up-right-from-square", "btn-primary"));
+      if (/^https?:\/\//.test(p.github || "")) acts.append(btn(p.github, "GitHub", "fa-brands fa-github", "btn-outline"));
+      if (acts.children.length) root.append(acts);
+
+      if (safeUrl(p.image)) {
+        const i = el("img", "pd-cover"); i.src = optimize(p.image, 1400); i.alt = `${p.title} screenshot`; root.append(i);
+      }
+
+      const about = el("div", "pd-body");
+      about.innerHTML = render(p.details || p.description || ""); // sanitized by DOMPurify in blog-lib.js
+      root.append(block("About this project", about));
+
+      const vid = String(p.video || "").trim();
+      if (/\.(mp4|webm)(\?.*)?$/i.test(vid) && safeUrl(vid)) {
+        const w = el("div", "pd-videofile"), v = el("video");
+        v.src = vid; v.controls = true; v.preload = "metadata"; v.playsInline = true;
+        if (safeUrl(p.image)) v.poster = optimize(p.image, 1400);
+        w.append(v);
+        root.append(block("Video", w));
+      } else if (vid) {
+        const v = el("div", "pd-body");
+        v.innerHTML = render(vid); // a lone YouTube link becomes an embedded player
+        if (v.querySelector("iframe")) root.append(block("Video", v));
+      }
+
+      const shots = (Array.isArray(p.gallery) ? p.gallery : Object.values(p.gallery || {})).filter(safeUrl);
+      if (shots.length) {
+        const g = el("div", "pd-gallery" + (shots.length === 1 ? " single" : ""));
+        shots.forEach((u, n) => {
+          const a = el("a"); a.href = u; a.target = "_blank"; a.rel = "noopener noreferrer";
+          const i = el("img"); i.src = optimize(u, 900); i.alt = `${p.title} screenshot ${n + 1}`; i.loading = "lazy";
+          a.append(i); g.append(a);
+        });
+        root.append(block("Screenshots", g));
+      }
+
+      if (/^https:\/\//.test(p.live || "")) {
+        const frame = el("div", "pd-frame"), bar = el("div", "pd-frame-bar");
+        const open = el("a", "", "Open in new tab"); open.href = p.live; open.target = "_blank"; open.rel = "noopener noreferrer";
+        bar.append(el("span", "", p.live.replace(/^https:\/\//, "")), open);
+        const f = el("iframe"); f.src = p.live; f.title = `${p.title} live preview`; f.loading = "lazy";
+        f.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups");
+        frame.append(bar, f);
+        root.append(block("Live preview", frame));
+      }
+    }
+
+    (async () => {
+      let found = STATIC_PROJECTS.find((p) => slugOf(p) === slug);
+      if (!found) {
+        try {
+          const snap = await get(ref(db, "projects"));
+          if (snap.exists()) found = Object.values(snap.val()).find((p) => slugOf(p) === slug);
+        } catch (e) { console.error(e); }
+      }
+      found ? draw(found) : notFound();
+    })();
+    </script>
+</body>
+</html>
