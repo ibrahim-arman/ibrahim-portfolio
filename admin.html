@@ -72,8 +72,14 @@
       <input id="github" type="url" placeholder="https://github.com/ibrahim-arman/...">
       <label for="live">Live demo link (optional)</label>
       <input id="live" type="url" placeholder="https://...">
-      <label for="image">Screenshot</label>
+      <label for="details">Full project details (Markdown, shown on the project page)</label>
+      <textarea id="details" style="min-height:160px" maxlength="20000"></textarea>
+      <label for="image">Cover screenshot</label>
       <input id="image" type="file" accept="image/*">
+      <label for="gallery">More screenshots (pick several)</label>
+      <input id="gallery" type="file" accept="image/*" multiple>
+      <label for="video">Demo video (YouTube link, optional)</label>
+      <input id="video" type="url" placeholder="https://www.youtube.com/watch?v=...">
       <button id="save">Save project</button>
       <p class="status" id="save-status"></p>
     </section>
@@ -139,16 +145,25 @@ $("save").onclick = async () => {
     const file = $("image").files[0];
     if (file) { status.textContent = "Uploading image..."; image = await uploadImage(file); }
 
+    const gallery = [];
+    const shots = [...$("gallery").files];
+    for (let i = 0; i < shots.length; i++) {
+      status.textContent = `Uploading screenshot ${i + 1} of ${shots.length}...`;
+      gallery.push(await uploadImage(shots[i]));
+    }
+
     status.textContent = "Saving project...";
     await push(ref(db, "projects"), {
-      title, description, image,
+      title, description, image, gallery,
+      details: $("details").value.trim(),
+      video: $("video").value.trim(),
       tech: $("tech").value.split(",").map((t) => t.trim()).filter(Boolean),
       github: $("github").value.trim(),
       live: $("live").value.trim(),
       createdAt: serverTimestamp(),
     });
 
-    ["title", "description", "tech", "github", "live", "image"].forEach((id) => ($(id).value = ""));
+    ["title", "description", "details", "tech", "github", "live", "image", "gallery", "video"].forEach((id) => ($(id).value = ""));
     status.textContent = "Project saved.";
     loadProjects();
   } catch (err) {

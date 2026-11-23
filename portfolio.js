@@ -1,6 +1,7 @@
 // Public site logic: contact form -> Firebase, projects <- Firebase
 import { db } from "./firebase.js";
 import { optimize } from "./cloudinary.js";
+import { STATIC_PROJECTS, slugOf } from "./projects-data.js";
 import {
   ref, push, get, serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
@@ -60,18 +61,6 @@ if (form) {
 }
 
 /* ---------- Projects <- Realtime Database ---------- */
-// Projects that always show, even if the database is empty or unreachable.
-// Add more here, or add them in admin.html. Entries with the same live URL are not shown twice.
-const STATIC_PROJECTS = [
-  {
-    title: "Restaurant SaaS",
-    description: "A software-as-a-service platform for restaurants, deployed live on Vercel.",
-    tech: ["SaaS", "Web App"],
-    live: "https://restaurant-saas-f6k5.vercel.app/",
-    createdAt: Number.MAX_SAFE_INTEGER, // keeps it first in the list
-  },
-];
-
 const grid = document.getElementById("projects-grid");
 if (grid) {
   const el = (tag, cls, text) => {
@@ -121,7 +110,13 @@ if (grid) {
       card.append(header);
 
       const body = el("div", "project-body");
-      body.append(el("h3", "project-title", p.title), el("p", "project-description", p.description));
+      const h = el("h3", "project-title");
+      const t = el("a", "", p.title);
+      t.href = "/projects/" + slugOf(p);
+      t.style.color = "inherit";
+      t.style.textDecoration = "none";
+      h.append(t);
+      body.append(h, el("p", "project-description", p.description));
       card.append(body);
 
       if (tech.length) {
@@ -131,9 +126,13 @@ if (grid) {
       }
 
       const footer = el("div", "project-footer");
+      const more = el("a", "project-link");
+      more.href = "/projects/" + slugOf(p);
+      more.append(el("i", "fas fa-circle-info"), el("span", "", "Details"));
+      footer.append(more);
       if (p.github && /^https?:\/\//.test(p.github)) footer.append(linkEl(p.github, "GitHub", "fa-brands fa-github"));
       if (p.live && /^https?:\/\//.test(p.live)) footer.append(linkEl(p.live, "Live demo", "fas fa-arrow-up-right-from-square"));
-      if (footer.children.length) card.append(footer);
+      card.append(footer);
 
       grid.append(card);
     }
