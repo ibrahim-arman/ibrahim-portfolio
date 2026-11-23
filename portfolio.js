@@ -60,6 +60,18 @@ if (form) {
 }
 
 /* ---------- Projects <- Realtime Database ---------- */
+// Projects that always show, even if the database is empty or unreachable.
+// Add more here, or add them in admin.html. Entries with the same live URL are not shown twice.
+const STATIC_PROJECTS = [
+  {
+    title: "Restaurant SaaS",
+    description: "A software-as-a-service platform for restaurants, deployed live on Vercel.",
+    tech: ["SaaS", "Web App"],
+    live: "https://restaurant-saas-f6k5.vercel.app/",
+    createdAt: Number.MAX_SAFE_INTEGER, // keeps it first in the list
+  },
+];
+
 const grid = document.getElementById("projects-grid");
 if (grid) {
   const el = (tag, cls, text) => {
@@ -79,52 +91,94 @@ if (grid) {
     return a;
   };
 
+  const merge = (fromDb) => {
+    const seen = new Set(fromDb.map((p) => p.live).filter(Boolean));
+    return [...STATIC_PROJECTS.filter((p) => !seen.has(p.live)), ...fromDb]
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  };
+
+  const draw = (items) => {
+    grid.replaceChildren();
+    if (!items.length) {
+      grid.append(el("p", "projects-empty", "Projects will appear here soon."));
+      return;
+    }
+    for (const p of items) {
+      // "visible" is added so the scroll fade-in in script.js doesn't hide late-loaded cards
+      const card = el("article", "card project-card fade-in visible");
+      const tech = Array.isArray(p.tech) ? p.tech : [];
+
+      if (p.image) {
+        const img = el("img", "project-image");
+        img.src = optimize(p.image, 800);
+        img.alt = p.title ? `${p.title} screenshot` : "Project screenshot";
+        img.loading = "lazy";
+        card.append(img);
+      }
+
+      const header = el("div", "project-header");
+      header.append(el("span", "project-category", tech[0] || "Project"));
+      card.append(header);
+
+      const body = el("div", "project-body");
+      body.append(el("h3", "project-title", p.title), el("p", "project-description", p.description));
+      card.append(body);
+
+      if (tech.length) {
+        const stack = el("div", "project-tech-stack");
+        tech.forEach((t) => stack.append(el("span", "tech-pill", t)));
+        card.append(stack);
+      }
+
+      const footer = el("div", "project-footer");
+      if (p.github && /^https?:\/\//.test(p.github)) footer.append(linkEl(p.github, "GitHub", "fa-brands fa-github"));
+      if (p.live && /^https?:\/\//.test(p.live)) footer.append(linkEl(p.live, "Live demo", "fas fa-arrow-up-right-from-square"));
+      if (footer.children.length) card.append(footer);
+
+      grid.append(card);
+    }
+  };
+
   get(ref(db, "projects"))
-    .then((snap) => {
-      grid.replaceChildren();
-      if (!snap.exists()) {
-        grid.append(el("p", "projects-empty", "Projects will appear here soon."));
-        return;
-      }
-      const items = Object.values(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-
-      for (const p of items) {
-        // "visible" is added so the scroll fade-in in script.js doesn't hide late-loaded cards
-        const card = el("article", "card project-card fade-in visible");
-        const tech = Array.isArray(p.tech) ? p.tech : [];
-
-        if (p.image) {
-          const img = el("img", "project-image");
-          img.src = optimize(p.image, 800);
-          img.alt = p.title ? `${p.title} screenshot` : "Project screenshot";
-          img.loading = "lazy";
-          card.append(img);
-        }
-
-        const header = el("div", "project-header");
-        header.append(el("span", "project-category", tech[0] || "Project"));
-        card.append(header);
-
-        const body = el("div", "project-body");
-        body.append(el("h3", "project-title", p.title), el("p", "project-description", p.description));
-        card.append(body);
-
-        if (tech.length) {
-          const stack = el("div", "project-tech-stack");
-          tech.forEach((t) => stack.append(el("span", "tech-pill", t)));
-          card.append(stack);
-        }
-
-        const footer = el("div", "project-footer");
-        if (p.github && /^https?:\/\//.test(p.github)) footer.append(linkEl(p.github, "GitHub", "fa-brands fa-github"));
-        if (p.live && /^https?:\/\//.test(p.live)) footer.append(linkEl(p.live, "Live demo", "fas fa-arrow-up-right-from-square"));
-        if (footer.children.length) card.append(footer);
-
-        grid.append(card);
-      }
-    })
+    .then((snap) => draw(merge(snap.exists() ? Object.values(snap.val()) : [])))
     .catch((err) => {
       console.error(err);
-      grid.replaceChildren(el("p", "projects-empty", "Could not load projects right now."));
+      draw(merge([]));
     });
+}
+
+/* ---------- Codeforces <- public API (no key needed) ---------- */
+const cfRating = document.getElementById("cf-rating");
+if (cfRating) {
+  const HANDLE = "ibrahim-arman";
+  const API = "https://codeforces.com/api/";
+  const set = (id, v) => { const n = document.getElementById(id); if (n) n.textContent = v; };
+
+  const getJson = async (url) => {
+    const r = await fetch(url);
+    const j = await r.json();
+    if (j.status !== "OK") throw new Error(j.comment || "Codeforces API error");
+    return j.result;
+  };
+
+  (async () => {
+    try {
+      const [[user], rated, subs] = await Promise.all([
+        getJson(`${API}user.info?handles=${HANDLE}`),
+        getJson(`${API}user.rating?handle=${HANDLE}`),
+        getJson(`${API}user.status?handle=${HANDLE}`),
+      ]);
+      const solved = new Set(
+        subs.filter((s) => s.verdict === "OK").map((s) => `${s.problem.contestId}-${s.problem.index}`)
+      );
+      set("cf-rating", user.rating ?? "Unrated");
+      set("cf-max", user.maxRating ?? "-");
+      set("cf-rank", user.rank ? `${user.rank} (max: ${user.maxRank || user.rank})` : "Unrated");
+      set("cf-contests", rated.length);
+      set("cf-solved", solved.size);
+    } catch (err) {
+      console.error(err);
+      set("cf-rank", "Live stats are unavailable right now. Open the profile to see them.");
+    }
+  })();
 }

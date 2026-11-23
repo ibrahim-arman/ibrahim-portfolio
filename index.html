@@ -39,6 +39,7 @@
                 <li><a href="#skills" class="nav-link">Skills</a></li>
                 <li><a href="#education" class="nav-link">Education</a></li>
                 <li><a href="#projects" class="nav-link">Projects</a></li>
+                <li><a href="#codeforces" class="nav-link">Codeforces</a></li>
                 <li><a href="blog.html" class="nav-link">Blog</a></li>
                 <li><a href="#contact" class="nav-link">Contact</a></li>
             </ul>
@@ -112,6 +113,10 @@
                             <a href="https://www.linkedin.com/in/ibrahim-arman-005a73291/?isSelfProfile=true" target="_blank" rel="noopener noreferrer" class="social-link" title="LinkedIn - Muhammad Ibrahim" aria-label="LinkedIn profile">
                                 <i class="fa-brands fa-linkedin-in"></i>
                                 <span>LinkedIn</span>
+                            </a>
+                            <a href="https://codeforces.com/profile/ibrahim-arman" target="_blank" rel="noopener noreferrer" class="social-link" title="Codeforces - ibrahim-arman" aria-label="Codeforces profile">
+                                <i class="fas fa-chart-simple"></i>
+                                <span>Codeforces</span>
                             </a>
                             <a href="mailto:iarman529@gmail.com" class="social-link" title="Email iarman529@gmail.com" aria-label="Email Muhammad Ibrahim">
                                 <i class="fas fa-envelope"></i>
@@ -238,6 +243,37 @@
             </div>
         </section>
 
+        <!-- CODEFORCES SECTION (live data from the public Codeforces API, see portfolio.js) -->
+        <section id="codeforces" class="section section-alt">
+            <div class="container">
+                <div class="section-header fade-in">
+                    <span class="section-tag">Competitive Programming</span>
+                    <h2 class="section-title"><span class="gradient-text">Codeforces</span></h2>
+                    <p class="section-description">Live stats from my Codeforces profile.</p>
+                </div>
+
+                <div class="card cf-card fade-in visible">
+                    <div class="cf-head">
+                        <div class="skill-icon-wrap"><i class="fas fa-chart-simple"></i></div>
+                        <div>
+                            <h3 class="card-title cf-handle">ibrahim-arman</h3>
+                            <p class="cf-rank" id="cf-rank">Loading...</p>
+                        </div>
+                        <a href="https://codeforces.com/profile/ibrahim-arman" target="_blank" rel="noopener noreferrer" class="btn btn-outline cf-link">
+                            <span>View profile</span>
+                            <i class="fas fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+                    <dl class="cf-stats">
+                        <div><dt>Current rating</dt><dd id="cf-rating">-</dd></div>
+                        <div><dt>Max rating</dt><dd id="cf-max">-</dd></div>
+                        <div><dt>Contests</dt><dd id="cf-contests">-</dd></div>
+                        <div><dt>Problems solved</dt><dd id="cf-solved">-</dd></div>
+                    </dl>
+                </div>
+            </div>
+        </section>
+
         <!-- CONTACT SECTION -->
         <section id="contact" class="section">
             <div class="container">
@@ -350,6 +386,7 @@
             <div class="footer-links">
                 <a href="https://github.com/Trueib2" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
                 <a href="https://www.linkedin.com/in/ibrahim-arman-005a73291/?isSelfProfile=true" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+                <a href="https://codeforces.com/profile/ibrahim-arman" target="_blank" rel="noopener noreferrer" aria-label="Codeforces"><i class="fas fa-chart-simple"></i></a>
                 <a href="mailto:iarman529@gmail.com" aria-label="Email"><i class="fas fa-envelope"></i></a>
             </div>
             <div class="footer-bottom">
